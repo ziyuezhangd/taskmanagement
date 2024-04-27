@@ -1,3 +1,4 @@
+from datetime import date
 # 数据结构
 # taskboard是一个hash table - dictionary (key: task name, value: object task)
 # 所有的schedule是一个sequence - list
@@ -6,20 +7,21 @@
 # 算法：sorting，round robin
 class TaskManagement:
     def __init__(self):
-        self.taskboard = {}
-        self.start_day = 20
-        self.schedule = []
-        self.mode = None
-        self.daily_working = 4
-        pass
+        self.__ongoing_task__ = {}
+        self.__completed_task__ = {}
+        self.__starting__ = date.today()
+        self.__schedule__ = []
+        self.__mode__ = 2  # 1 means sorting by deadline, 2 means round-robin style
+        self.__max_hour_daily__ = 4
+        
 
-    def add_task(self, task_name, task):
-        self.taskboard.update({task_name: task})
+    def add_task(self, task):
+        self.__ongoing_task__.update({task.name: task})
 
     def generate_schedule(self):
-        if self.mode == 1:
+        if self.__mode__ == 1:
             self.ddl_sorting()
-        elif self.mode == 2:
+        elif self.__mode__ == 2:
             self.rr_sorting()
         # 生成一个每日任务安排的sequence
         # 两种算法/mode：1按ddl排序，2round robin（且需满足ddl）
