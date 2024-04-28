@@ -3,7 +3,7 @@ from task import Task, StudyTask, RegularTask
 from datetime import datetime
 class TaskManagement:
     def __init__(self):
-        self.__ongoing_task__ = {}
+        self.__ongoing_task = {}
         self.__completed_task__ = {}
         self.__starting__ = date.today()
         self.__schedule__ = []
@@ -23,8 +23,8 @@ class TaskManagement:
         hours = self.__get_valid_hours("Enter total hours needed: ")
 
         # 如果任务已经存在（同名同类）：
-        if name in self.__ongoing_task__ and isinstance(self.__ongoing_task__[name], StudyTask if task_type == "study" else RegularTask):
-            existing_task = self.__ongoing_task__[name]
+        if name in self.__ongoing_task and isinstance(self.__ongoing_task[name], StudyTask if task_type == "study" else RegularTask):
+            existing_task = self.__ongoing_task[name]
             print(f"Task '{name}' already exists with {existing_task.hour_left} hours remaining.")
             additional_hours = self.__get_valid_hours(int(input("Enter additional hours to add (enter 0 to keep as is): ")), minimum=0)
             if additional_hours > 0:
@@ -41,13 +41,13 @@ class TaskManagement:
             daily_hours = self.__get_valid_hours("Enter daily minimum hours: ", minimum=1)
             task = RegularTask(name, hours, daily_hours)
 
-        self.__ongoing_task__[task.name] = task
+        self.__ongoing_task[task.name] = task
         print(f"Task '{task.name}' added successfully.")
 
 
     def delete_task(self, task_name):
-        if task_name in self.__ongoing_task__:
-            del self.__ongoing_task__[task_name]
+        if task_name in self.__ongoing_task:
+            del self.__ongoing_task[task_name]
             print(f"Task '{task_name}' has been deleted from the taskboard.")
         else:
             print(f"Task '{task_name}' is not in the taskboard.")
@@ -94,7 +94,7 @@ class TaskManagement:
                             break
                         elif completed_hours >= 0 and completed_hours <= hours:
                             # 更新任务剩余小时数
-                            task = self.__ongoing_task__[task_name]
+                            task = self.__ongoing_task[task_name]
                             task.hour_left -= completed_hours
                             print(f"Updated task '{task_name}': {task.hour_left} hours remaining.")
                             if task.hour_left <= 0:
@@ -153,12 +153,12 @@ class TaskManagement:
         print(f"Daily working hours set to {self.__max_hour_daily__}.")
 
     def statistics(self):
-        if not self.__ongoing_task__:
+        if not self.__ongoing_task:
             print("No tasks available")
             return
 
         print("Task Statistics:")
-        for task_name, task in self.__ongoing_task__.items():
+        for task_name, task in self.__ongoing_task.items():
             if hasattr(task, 'deadline'):  # StudyTask 有截止日期
                 deadline_str = f"Deadline: Day {task.deadline}"
             else:

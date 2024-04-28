@@ -28,7 +28,7 @@ def main():
         print("9 Statistics")  # 展示所有临近的ddl和任务完成百分比
         choice = input()
         if choice == "1":
-            for task_name, task in manager.__ongoing_task__.items():
+            for task_name, task in manager.__ongoing_task.items():
                 print(f"{task_name}: {task.hour} hours remaining")
         elif choice == "2":
             manager.add_task()
