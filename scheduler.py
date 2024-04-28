@@ -17,6 +17,8 @@ class TaskManagement:
         self.__max_hour_daily = 4
 
 
+    def get_ongoing_tasks(self):
+        return self.__ongoing_task
     def show_task_board(self):
         if not self.__ongoing_task:
             print("There are currently no tasks.")
