@@ -15,8 +15,10 @@ def main():
     # 在开始前强制用户设置工作模式和每日工作小时数
     manager.set_mode()
     manager.set_daily_workinghours()
+    ongoing_tasks = manager.get_ongoing_tasks()
 
     while True:
+        print('-' * 30)
         print("Welcome to task management!")
         print("Select:")
         print("1 Display task board")
@@ -30,16 +32,14 @@ def main():
         print("9 Statistics")  # 展示所有临近的ddl和任务完成百分比
         print("10 Regenerate schedule")  # 添加一个选项用于重新生成日程
 
+        print('-' * 30)
         choice = input()
         if choice == "1":
-            ongoing_tasks = manager.get_ongoing_task()  # 使用公共方法访问
-            for task_name, task in ongoing_tasks.items():
-                print(f"{task_name}: {task.hour} hours remaining")
+            manager.show_task_board()
         elif choice == "2":
             manager.add_task()
         elif choice == "3":
-            task_name = input("Enter the name of the task to delete: ")
-            manager.delete_task(task_name)
+            manager.delete_task()
         elif choice == "4":
             manager.show_today_schedule()
         elif choice == "5":

@@ -21,10 +21,14 @@ class StudyTask(Task):
         self.deadline = self._parse_date(deadline)
 
     def _parse_date(self, date_str: str) -> date:
-        try:
-            return date.fromisoformat(date_str)
-        except ValueError:
-            raise ValueError("Invalid date format. Please use YYYY-MM-DD format.")
+        while True:
+            try:
+                deadline_date = date.fromisoformat(date_str)
+                if deadline_date <= date.today():
+                    raise ValueError("Deadline must be after today.")
+                return deadline_date
+            except ValueError:
+                date_str = input("Invalid date. Please enter a date after today (YYYY-MM-DD): ")
 
     def days_left(self):
         return (self.deadline - date.today()).days
