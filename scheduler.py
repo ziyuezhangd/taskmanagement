@@ -209,4 +209,6 @@ class TaskManagement:
         pass
 
     def rr_sorting(self):
-        pass
+        sorted_tasks = list(self.__ongoing_task.values()).sort(key=lambda x: x.hour_per_day(), reverse=True)
+
+
