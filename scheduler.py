@@ -370,16 +370,15 @@ class TaskManagement:
                 else:
                     hour_task = min(hour_task, self.__max_hour_daily - daily_hour)
                 daily_plan.add((task.name, hour_task))
-                print(daily_plan)
                 # 更新该任务的安排情况
-                task.hour_scheduled += hour_task
+                if isinstance(task, StudyTask):
+                    task.hour_scheduled += hour_task
                 # 当天的任务量超过max hour就停止安排
                 if self.__max_hour_daily <= daily_hour:
                     break
             if len(self.__schedule) == index:
                 # 之前的schedule正好只排到前一天（或初始状态：schedule为空，第一次安排）
                 self.__schedule.append(daily_plan)
-                print(self.__schedule)
             elif len(self.__schedule) > index:
                 # 之前的schedule已经排好，需从中间修改今天及之后的安排
                 self.__schedule[index] = daily_plan
