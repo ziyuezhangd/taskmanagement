@@ -3,11 +3,11 @@ class Task:
     def __init__(self, name: str, hour: int):
         self.name = name
         self.hour = hour
-        self.hour_left = hour
 
 class StudyTask(Task):
     def __init__(self, name: str, hour: int, deadline: str):
         super().__init__(name, hour)
+        self.hour_left = hour
         self.deadline = self._parse_date(deadline)
     def _parse_date(self, date_str: str) -> date:
         try:
