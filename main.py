@@ -3,6 +3,8 @@ from task import StudyTask, RegularTask
 from datetime import datetime
 
 #用户交互
+
+
 def main():
     manager = TaskManagement()
 
@@ -26,9 +28,12 @@ def main():
         print("7 Set mode")
         print("8 Set daily working hours")
         print("9 Statistics")  # 展示所有临近的ddl和任务完成百分比
+        print("10 Regenerate schedule")  # 添加一个选项用于重新生成日程
+
         choice = input()
         if choice == "1":
-            for task_name, task in manager.__ongoing_task.items():
+            ongoing_tasks = manager.get_ongoing_task()  # 使用公共方法访问
+            for task_name, task in ongoing_tasks.items():
                 print(f"{task_name}: {task.hour} hours remaining")
         elif choice == "2":
             manager.add_task()
@@ -47,6 +52,9 @@ def main():
             manager.set_daily_workinghours()
         elif choice == "9":
             manager.statistics()
+        elif choice == "10":
+            manager.generate_schedule()
+            print("Schedule regenerated.")
         else:
             print("Invalid choice. Please try again.")
 
