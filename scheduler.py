@@ -4,11 +4,11 @@ from datetime import datetime
 class TaskManagement:
     def __init__(self):
         self.__ongoing_task = {}
-        self.__completed_task__ = {}
-        self.__starting__ = date.today()
-        self.__schedule__ = []
-        self.__mode__ = 2  # 1 means sorting by deadline, 2 means round-robin style
-        self.__max_hour_daily__ = 4
+        self.__completed_task = {}
+        self.__starting = date.today()
+        self.__schedule = []
+        self.__mode = 2  # 1 means sorting by deadline, 2 means round-robin style
+        self.__max_hour_daily = 4
 
 
     def add_task(self):
@@ -56,23 +56,23 @@ class TaskManagement:
 
     def show_today_schedule(self):
         today = date.today()  # 获取今天的日期
-        today_index = (today - self.__starting__).days
-        if today_index < 0 or today_index >= len(self.__schedule__):
+        today_index = (today - self.__starting).days
+        if today_index < 0 or today_index >= len(self.__schedule):
             print("Today's schedule is not available.")
             return
-        today_schedule = self.__schedule__[today_index] if today_index < len(self.__schedule__) else []
+        today_schedule = self.__schedule[today_index] if today_index < len(self.__schedule) else []
         print("Today's schedule:")
         for task in today_schedule:
             print(f"Task: {task[0]}, Hours: {task[1]}")
 
     def today_feedback(self):
         today = date.today()
-        today_index = (today - self.__starting__).days
-        if today_index < 0 or today_index >= len(self.__schedule__):
+        today_index = (today - self.__starting).days
+        if today_index < 0 or today_index >= len(self.__schedule):
             print("Today's schedule is not available.")
             return
 
-        today_schedule = self.__schedule__[today_index]
+        today_schedule = self.__schedule[today_index]
 
         for task_tuple in today_schedule:
             task_name, hours = task_tuple
@@ -127,9 +127,9 @@ class TaskManagement:
     def show_week_schedule(self):
         print("This week's schedule :")
         for i in range(7):  # 显示接下来7天的日程
-            day = self.__starting__ + timedelta(days=i)
-            if i < len(self.__schedule__):
-                daily_schedule = self.__schedule__[i]
+            day = self.__starting + timedelta(days=i)
+            if i < len(self.__schedule):
+                daily_schedule = self.__schedule[i]
                 print(f"Day {day}: {daily_schedule}")
             else:
                 print(f"Day {day}: No tasks scheduled.")
@@ -140,8 +140,8 @@ class TaskManagement:
         while True:
             mode_input = input("Enter mode (1 for DDL sorting, 2 for Round Robin): ")
             if mode_input.isdigit() and mode_input in ['1', '2']:
-                self.__mode__ = int(mode_input)
-                mode_name = 'DDL sorting' if self.__mode__ == 1 else 'Round Robin'
+                self.__mode = int(mode_input)
+                mode_name = 'DDL sorting' if self.__mode == 1 else 'Round Robin'
                 print(f"Mode set to {mode_name}.")
                 break
             else:
@@ -149,8 +149,8 @@ class TaskManagement:
 
 
     def set_daily_workinghours(self):
-        self.__max_hour_daily__ = self.__get_valid_hours(int(input("Enter daily working hours (1-24): ")))
-        print(f"Daily working hours set to {self.__max_hour_daily__}.")
+        self.__max_hour_daily = self.__get_valid_hours(int(input("Enter daily working hours (1-24): ")))
+        print(f"Daily working hours set to {self.__max_hour_daily}.")
 
     def statistics(self):
         if not self.__ongoing_task:
@@ -195,9 +195,9 @@ class TaskManagement:
             except ValueError:
                 print("Invalid date format. Please enter a date in YYYY-MM-DD format.")
     def generate_schedule(self):
-        if self.__mode__ == 1:
+        if self.__mode == 1:
             self.ddl_sorting()
-        elif self.__mode__ == 2:
+        elif self.__mode == 2:
             self.rr_sorting()
         # 生成一个每日任务安排的sequence
         # 两种算法/mode：1按ddl排序，2round robin（且需满足ddl）
