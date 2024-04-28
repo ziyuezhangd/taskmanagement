@@ -341,18 +341,28 @@ class TaskManagement:
         #     print("DDL sorting completed.")
 
     def rr_sorting(self):
-        # 从today开始往后排序
+        # 从today开始往后安排任务
         # 清空之前安排时在Task中的记录
         for task in self.__ongoing_task.values():
             if isinstance(task, StudyTask):
                 task.hour_scheduled = 0
-        # 把所有任务按每天所需时长排序
+        # 记录当前安排的日期
         schedule_date = date.today()
-        # 先按ddl排序，再按平均小时排序
+        index = (schedule_date - self.__starting).days
+        # 把所有任务按每天所需时长排序
+        # 先按平均小时排序
         sorted_tasks = list(sorted(self.__ongoing_task.values(),
                                    key=lambda x: x.get_hour_per_day_schedule(schedule_date),
                                    reverse=True))
-        index = (schedule_date - self.__starting).days
+        # 再按ddl调整，同时调整regular（仅需调整一次，后面sort的时候相对位置保持不变）
+        for i in range(1, len(sorted_tasks)):
+            if sorted_tasks[i].get_hour_per_day_schedule(schedule_date) == sorted_tasks[i-1].get_hour_per_day_schedule(schedule_date):
+                if isinstance(sorted_tasks[i-1], RegularTask):
+                    sorted_tasks[i], sorted_tasks[i-1] = sorted_tasks[i-1], sorted_tasks[i]
+                elif isinstance(sorted_tasks[i], StudyTask) and sorted_tasks[i-1].deadline > sorted_tasks[i].deadline:
+                    sorted_tasks[i], sorted_tasks[i - 1] = sorted_tasks[i - 1], sorted_tasks[i]
+            i += 1
+
         # 当没有未安排完的study任务时退出循环
         while any(isinstance(task, StudyTask) for task in sorted_tasks):
             if len(self.__schedule) < index:
@@ -363,19 +373,40 @@ class TaskManagement:
             daily_plan = set()
             daily_hour = 0
             for task in sorted_tasks:
+                # 当天的任务量超过max hour就停止安排（继续遍历检查是否有ddl临近的任务）
+                if self.__max_hour_daily <= daily_hour:
+                    # 如果有ddl当天的任务，必须安排
+                    if isinstance(task, RegularTask) or task.deadline != schedule_date:
+                        continue
                 hour_task = math.ceil(task.get_hour_per_day_schedule(schedule_date))
                 # 添加任务到当天
                 if isinstance(task, StudyTask):
-                    hour_task = min(hour_task, task.hour_left - task.hour_scheduled, 24 - daily_hour)
+                    if task.deadline == schedule_date:
+                        hour_task = task.hour_left - task.hour_scheduled
+                    else:
+                        hour_task = min(hour_task, task.hour_left - task.hour_scheduled,
+                                        self.__max_hour_daily - daily_hour)
                 else:
                     hour_task = min(hour_task, self.__max_hour_daily - daily_hour)
                 daily_plan.add((task.name, hour_task))
+                daily_hour += hour_task
                 # 更新该任务的安排情况
                 if isinstance(task, StudyTask):
                     task.hour_scheduled += hour_task
-                # 当天的任务量超过max hour就停止安排
-                if self.__max_hour_daily <= daily_hour:
-                    break
+            # 如超时，检查当天的任务是否有可以推迟的
+            print(daily_hour)
+            if daily_hour > self.__max_hour_daily:
+                modify_tasks = set()
+                for task_name, hour in daily_plan:
+                    # 检查regular
+                    if isinstance(self.__ongoing_task.get(task_name), RegularTask):
+                        while hour != 0 and daily_hour > self.__max_hour_daily:
+                            hour -= 1
+                            daily_hour -= 1
+                        modify_tasks.add((task_name, hour))
+                    if daily_hour <= self.__max_hour_daily:
+                        break
+            # 将当天任务安排添加到总安排列表中
             if len(self.__schedule) == index:
                 # 之前的schedule正好只排到前一天（或初始状态：schedule为空，第一次安排）
                 self.__schedule.append(daily_plan)
