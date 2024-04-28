@@ -3,7 +3,7 @@ from task import Task, StudyTask, RegularTask
 from datetime import datetime
 from operator import attrgetter
 import time
-
+import math
 
 
 class TaskManagement:
@@ -11,14 +11,13 @@ class TaskManagement:
         self.__ongoing_task = {}
         self.__completed_task = {}
         self.__starting = date.today()
-        # self.__schedule = []
-        self.__schedule = [set() for _ in range(30)]
+        self.__schedule = []
         self.__mode = 2  # 1 means sorting by deadline, 2 means round-robin style
         self.__max_hour_daily = 4
 
-
     def get_ongoing_tasks(self):
         return self.__ongoing_task
+
     def show_task_board(self):
         if not self.__ongoing_task:
             print("There are currently no tasks.")
@@ -37,7 +36,6 @@ class TaskManagement:
             self.generate_schedule()
             print("Daily schedule update completed.")
             time.sleep(86400)  # 每24小时更新一次，86400秒等于一天
-
 
     def add_task(self):
         valid_task_types = ['study', 'regular', '-1']
@@ -78,7 +76,6 @@ class TaskManagement:
                 task = RegularTask(name, hours)
                 self.__ongoing_task[task.name] = task
 
-        self.generate_schedule()
         print(f"Task '{name}' added successfully.")
 
         print("Generating schedule...")
@@ -130,8 +127,8 @@ class TaskManagement:
                             print(f"You have did {task_name} for {today_hour} hours today. You still need to do it for {task_name.hour_left} hours in the future.")
                             break
                         else:
-
-                            self.delete_task(task_name)
+                            completed_task = self.__ongoing_task.pop(task_name)
+                            self.__completed_task.update({task_name: completed_task})
                             print(f"Awesome! You have finished {task_name}.")
                             break
                     elif completed == 'no':
@@ -157,7 +154,6 @@ class TaskManagement:
                         print("Invalid input. Please answer 'yes' or 'no'.")
         self.generate_schedule()
         print("Based on your task completion status, a new scheduler has been generated for you.")
-
 
     def show_week_schedule(self):
         print("This week's schedule :")
@@ -248,16 +244,19 @@ class TaskManagement:
                 return date_str
             except ValueError:
                 print("Invalid date format. Please enter a date in YYYY-MM-DD format.")
+
     def generate_schedule(self):
-        if self.__mode == 1:
-            self.ddl_sorting()
-        elif self.__mode == 2:
-            self.rr_sorting()
+        if len(self.__ongoing_task) == 0:
+            print("No task in the task board. Please add some tasks.")
+        else:
+            if self.__mode == 1:
+                self.ddl_sorting()
+            elif self.__mode == 2:
+                self.rr_sorting()
         # 生成一个每日任务安排的sequence
         # 两种算法/mode：1按ddl排序，2round robin（且需满足ddl）
         # 优先满足StudyTask，剩余时间满足RegularTask
         # 如果ddl紧张，一天可以超过daily_working_hour（但不能超过24）
-        pass
 
     def ddl_sorting(self):
         print("Starting DDL sorting...")
@@ -342,6 +341,57 @@ class TaskManagement:
         #     print("DDL sorting completed.")
 
     def rr_sorting(self):
-        sorted_tasks = list(self.__ongoing_task.values()).sort(key=lambda x: x.hour_per_day(), reverse=True)
+        # 从today开始往后排序
+        # 清空之前安排时在Task中的记录
+        for task in self.__ongoing_task.values():
+            if isinstance(task, StudyTask):
+                task.hour_scheduled = 0
+        # 把所有任务按每天所需时长排序
+        schedule_date = date.today()
+        # 先按ddl排序，再按平均小时排序
+        sorted_tasks = list(sorted(self.__ongoing_task.values(),
+                                   key=lambda x: x.get_hour_per_day_schedule(schedule_date),
+                                   reverse=True))
+        index = (schedule_date - self.__starting).days
+        # 当没有未安排完的study任务时退出循环
+        while any(isinstance(x, StudyTask) for x in sorted_tasks):
+            if len(self.__schedule) < index:
+                # 中间有间断，不应存在这种情况
+                for i in range(len(self.__schedule), index):
+                    self.__schedule.append(set())
+            # 安排一天的任务
+            daily_plan = set()
+            daily_hour = 0
+            for task in sorted_tasks:
+                hour_task = math.ceil(task.get_hour_per_day_schedule(schedule_date))
+                # 添加任务到当天
+                if isinstance(task, StudyTask):
+                    hour_task = min(hour_task, task.hour_left - task.hour_scheduled, 24 - daily_hour)
+                else:
+                    hour_task = min(hour_task, self.__max_hour_daily - daily_hour)
+                daily_plan.add((task.name, hour_task))
+                print(daily_plan)
+                # 更新该任务的安排情况
+                task.hour_scheduled += hour_task
+                # 当天的任务量超过max hour就停止安排
+                if self.__max_hour_daily >= daily_hour:
+                    break
+            if len(self.__schedule) == index:
+                # 之前的schedule正好只排到前一天（或初始状态：schedule为空，第一次安排）
+                print("Here 1")
+                self.__schedule.append(daily_plan)
+                print(self.__schedule)
+            elif len(self.__schedule) > index:
+                # 之前的schedule已经排好，需从中间修改今天及之后的安排
+                self.__schedule[index] = daily_plan
+
+            # 更新schedule_date和index，重新排序，准备开启下一天的安排
+            schedule_date += timedelta(days=1)
+            index += 1
+            # 从待安排任务列表中清除已经安排完成的任务，保留所有regular
+            sorted_tasks = list(filter(lambda x: isinstance(x, RegularTask) or x.hour_scheduled < x.hour_left,
+                                       sorted_tasks))
+            sorted_tasks.sort(key=lambda x: x.get_hour_per_day_schedule(schedule_date), reverse=True)
+
 
 
