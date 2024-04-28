@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from task import Task, StudyTask, RegularTask
 from datetime import datetime
+from operator import attrgetter
 class TaskManagement:
     def __init__(self):
         self.__ongoing_task = {}
@@ -10,49 +11,71 @@ class TaskManagement:
         self.__mode = 2  # 1 means sorting by deadline, 2 means round-robin style
         self.__max_hour_daily = 4
 
+    def get_ongoing_tasks(self):
+        return self.__ongoing_task
+
+    def show_task_board(self):
+        if not self.__ongoing_task:
+            print("There are currently no tasks.")
+        else:
+            for task_name, task in self.__ongoing_task.items():
+                if isinstance(task, StudyTask):
+                    print(f"{task_name}: {task.hour_left} hours remaining")
+                else:
+                    print(f"{task_name}: minimal {task.hour} hours every day")
 
     def add_task(self):
-        valid_task_types = ['study', 'regular']
-        task_type = input("Enter task type (study/regular): ").lower()
+        valid_task_types = ['study', 'regular', '-1']
+        task_type = input("Enter task type (study/regular/-1 to exit): ").lower()
 
         while task_type not in valid_task_types:
-            print("Invalid task type. Please enter 'study' or 'regular'.")
+            print("Invalid task type. Please enter 'study' or 'regular' or '-1'.")
             task_type = input("Enter task type (study/regular): ").lower()
-
-        name = input("Enter task name: ")
-        hours = self.__get_valid_hours("Enter total hours needed: ")
-
-        # 如果任务已经存在（同名同类）：
-        if name in self.__ongoing_task and isinstance(self.__ongoing_task[name], StudyTask if task_type == "study" else RegularTask):
-            existing_task = self.__ongoing_task[name]
-            print(f"Task '{name}' already exists with {existing_task.hour_left} hours remaining.")
-            additional_hours = self.__get_valid_hours(int(input("Enter additional hours to add (enter 0 to keep as is): ")), minimum=0)
-            if additional_hours > 0:
-                existing_task.hour_left += additional_hours
-                print(f"Updated hours for task '{name}': {existing_task.hour_left} hours remaining.")
-                # 旧任务时间增加，需要重新schedule
-
+        if task_type == '-1':
             return
+        name = input("Enter task name: ")
 
         if task_type == "study":
-            deadline = self.__get_valid_date("Enter deadline (YYYY-MM-DD): ")
-            task = StudyTask(name, hours, deadline)
-        elif task_type == "regular":
-            daily_hours = self.__get_valid_hours("Enter daily minimum hours: ", minimum=1)
-            task = RegularTask(name, hours, daily_hours)
+            if name in self.__ongoing_task:
+                existing_task = self.__ongoing_task[name]
+                print(f"Task '{name}' already exists with {existing_task.hour_left} hours remaining.")
+                additional_hours = self.__get_valid_hours("Enter additional hours to add (enter 0 to keep as is): ",
+                                                          minimum=0)
+                existing_task.hour_left += additional_hours
+                existing_task.hour += additional_hours
+                print(f"Updated hours for task '{name}': {existing_task.hour_left} hours remaining.")
+            else:
+                hours = self.__get_valid_hours("Enter total hours needed: ")
+                deadline = self.__get_valid_date("Enter deadline (YYYY-MM-DD): ")
+                task = StudyTask(name, hours, deadline)
+                self.__ongoing_task[task.name] = task
 
-        self.__ongoing_task[task.name] = task
-        print(f"Task '{task.name}' added successfully.")
+        else:
+            if name in self.__ongoing_task:
+                existing_task = self.__ongoing_task[name]
+                print(f"Task '{name}' already exists with the daily minimum {existing_task.hour} hours remaining.")
+                additional_hours = self.__get_valid_hours("Enter additional hours to add (enter 0 to keep as is): ",
+                                                          minimum=0)
+                existing_task.hour += additional_hours
+                print(f"Updated hours for task '{name}': minimum {existing_task.hour} hours every day.")
+            else:
+                hours = self.__get_valid_hours("Enter daily minimum hours: ", minimum=1)
+                task = RegularTask(name, hours)
+                self.__ongoing_task[task.name] = task
+
+        self.generate_schedule()
+        print(f"Task '{name}' added successfully.")
 
 
-    def delete_task(self, task_name):
-        if task_name in self.__ongoing_task:
+    def delete_task(self):
+        task_name = input("Enter the name of the task to delete (-1 to exit): ")
+        if task_name == '-1':
+            return
+        elif task_name in self.__ongoing_task:
             del self.__ongoing_task[task_name]
             print(f"Task '{task_name}' has been deleted from the taskboard.")
         else:
             print(f"Task '{task_name}' is not in the taskboard.")
-
-
 
     def show_today_schedule(self):
         today = date.today()  # 获取今天的日期
@@ -76,53 +99,45 @@ class TaskManagement:
 
         for task_tuple in today_schedule:
             task_name, hours = task_tuple
-            while True:
-                completed = input(f"Did you complete '{task_name}' for {hours} hours today? (yes/no): ").lower()
-                if completed == 'yes':
-                    # 任务完成，移除任务
-                    self.delete_task(task_name)
-                    print(f"Task '{task_name}' completed and removed.")
-                    break
-                elif completed == 'no':
-                    # 问还想不想继续
-                    while True:
-                        completed_hours = self.__get_valid_hours(int(input(f"How many hours did you complete for '{task_name}' today? (-1 to abandon task, 0 or positive number for hours completed): ")), minimum=-1)
-                        if completed_hours == -1:
-                            # 用户选择放弃任务
-                            self.delete_task(task_name)
-                            print(f"Task '{task_name}' abandoned and removed.")
-                            break
-                        elif completed_hours >= 0 and completed_hours <= hours:
-                            # 更新任务剩余小时数
-                            task = self.__ongoing_task[task_name]
-                            task.hour_left -= completed_hours
-                            print(f"Updated task '{task_name}': {task.hour_left} hours remaining.")
-                            if task.hour_left <= 0:
-                                self.delete_task(task_name)
-                                print(f"Task '{task_name}' completed and removed.")
+            if isinstance(task_name, StudyTask):
+                while True:
+                    completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
+                    if completed == 'yes':
+                        # 做了，问做了多久
+                        today_hour = self.__get_valid_hours(input(f"You are scheduled to do {task_name} for {hours} hours today. How many hours did you actually do it?"),minimum=1)
+                        if today_hour < task_name.hour_left:
+                            task_name.hour_left -= today_hour
+                            if today_hour >= hours:
+                                print("Great job!")
+                            print(f"You have did {task_name} for {today_hour} hours today. You still need to do it for {task_name.hour_left} hours in the future.")
                             break
                         else:
-                            print(f"Invalid number of hours. Please enter a number between -1 and {hours}.")
-
-                    break
-                else:
-                    print("Invalid input. Please answer 'yes' or 'no'.")
-
-            # completed = input(f"Did you complete '{task_name}' for {hours} hours today? (yes/no): ").lower()
-            #
-            # if completed == 'yes':
-            #     # 任务完成，减去相应的小时数
-            #     task = self.__ongoing_task__[task_name]
-            #     task.hour_left -= hours
-            #     # 如果任务完成，小时数小于等于0，从任务板删除任务
-            #     if task.hour_left <= 0:
-            #         self.delete_task(task_name)
-            # else:
-            #     # 如果未完成，加入到任务排序算法中
-            #
-            #     print(f"Task '{task_name}' not completed and needs re-scheduling.")
-
-
+                            self.delete_task(task_name)
+                            print(f"Awesome! You have finished {task_name}.")
+                            break
+                    elif completed == 'no':
+                        print(f"It's okay. I will reschedule {task_name} for you.")
+                        print("You can also choose to delete it on the main interface.")
+                        break
+                    else:
+                        print("Invalid input. Please answer 'yes' or 'no'.")
+             # regular task
+            else:
+                while True:
+                    completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
+                    if completed == 'yes':
+                        # 做了，问做了多久
+                        today_hour = self.__get_valid_hours(input(
+                            f"You are scheduled to do {task_name} for {hours} hours today. How many hours did you actually do it?"),
+                                                            minimum=1)
+                        if today_hour >= hours:
+                            print(f"Great! You completed {task_name} planned for today")
+                    elif completed == 'no':
+                        print(f"Unfortunately, you did not complete {task_name} planned for today")
+                    else:
+                        print("Invalid input. Please answer 'yes' or 'no'.")
+        self.generate_schedule()
+        print("Based on your task completion status, a new scheduler has been generated for you.")
 
     def show_week_schedule(self):
         print("This week's schedule :")
@@ -135,42 +150,57 @@ class TaskManagement:
                 print(f"Day {day}: No tasks scheduled.")
 
     def set_mode(self):
-        # self.__mode__ = int(input("Enter mode (1 for DDL sorting, 2 for Round Robin): "))
-        # print(f"Mode set to {'DDL sorting' if self.__mode__ == 1 else 'Round Robin'}.")
+        mode_name = 'DDL sorting' if self.__mode == 1 else 'Round Robin'
+        print(f"Current mode is {mode_name}.")
         while True:
-            mode_input = input("Enter mode (1 for DDL sorting, 2 for Round Robin): ")
-            if mode_input.isdigit() and mode_input in ['1', '2']:
+            mode_input = input("Enter mode (1 for DDL sorting, 2 for Round Robin, -1 to keep current and exit): ")
+            if mode_input == '-1':
+                return
+            elif mode_input.isdigit() and mode_input in ['1', '2']:
                 self.__mode = int(mode_input)
                 mode_name = 'DDL sorting' if self.__mode == 1 else 'Round Robin'
                 print(f"Mode set to {mode_name}.")
                 break
             else:
-                print("Invalid input. Please enter '1' for DDL sorting or '2' for Round Robin.")
-
+                print("Invalid input. Please enter '1' for DDL sorting or '2' for Round Robin or -1 to exit.")
 
     def set_daily_workinghours(self):
-        self.__max_hour_daily = self.__get_valid_hours(int(input("Enter daily working hours (1-24): ")))
-        print(f"Daily working hours set to {self.__max_hour_daily}.")
-
+        print(f"Current daily working hours is {self.__max_hour_daily}.")
+        while True:
+            max_hour_daily = self.__get_valid_hours("Enter daily working hours (1-24) (-1 to keep current and exit): ",minimum=-1)
+            if max_hour_daily == -1:
+                return
+            elif 1 <= max_hour_daily <= 24:
+                self.__max_hour_daily = max_hour_daily
+                print(f"Daily working hours set to {self.__max_hour_daily}.")
+                break
+            else:
+                print("Invalid input. Please enter a number between 1 and 24 or -1.")
     def statistics(self):
         if not self.__ongoing_task:
             print("No tasks available")
             return
 
-        print("Task Statistics:")
-        for task_name, task in self.__ongoing_task.items():
-            if hasattr(task, 'deadline'):  # StudyTask 有截止日期
-                deadline_str = f"Deadline: Day {task.deadline}"
-            else:
-                deadline_str = "No specific deadline"  # RegularTask 可能没有截止日期
+        # 获取仅包含 StudyTask 的任务列表
+        study_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, StudyTask)]
 
+        # 按照截止日期对 StudyTask 进行排序
+        sorted_study_tasks = sorted(study_tasks, key=attrgetter('deadline'))
+
+        print("Task Statistics:")
+        for task in sorted_study_tasks:
+            deadline_str = f"Deadline: Day {task.deadline}"
             if task.hour > 0:
                 completion_percentage = (task.hour - task.hour_left) / task.hour * 100
             else:
                 completion_percentage = 100  # 防止除以零
 
-            print(f"{task_name} - {deadline_str}, Completion: {completion_percentage:.2f}%")
+            print(f"{task.name} - {deadline_str}, Completion: {completion_percentage:.2f}%")
 
+        # 输出regular task类型的任务统计信息
+        for task_name, task in self.__ongoing_task.items():
+            if not isinstance(task, StudyTask):
+                print(f"{task_name} with minimum daily {task.hour} hours has no specific deadline.")
 
 
     def __get_valid_hours(self, prompt, minimum=1):
