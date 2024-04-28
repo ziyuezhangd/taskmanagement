@@ -354,7 +354,7 @@ class TaskManagement:
                                    reverse=True))
         index = (schedule_date - self.__starting).days
         # 当没有未安排完的study任务时退出循环
-        while any(isinstance(x, StudyTask) for x in sorted_tasks):
+        while any(isinstance(task, StudyTask) for task in sorted_tasks):
             if len(self.__schedule) < index:
                 # 中间有间断，不应存在这种情况
                 for i in range(len(self.__schedule), index):
@@ -374,11 +374,10 @@ class TaskManagement:
                 # 更新该任务的安排情况
                 task.hour_scheduled += hour_task
                 # 当天的任务量超过max hour就停止安排
-                if self.__max_hour_daily >= daily_hour:
+                if self.__max_hour_daily <= daily_hour:
                     break
             if len(self.__schedule) == index:
                 # 之前的schedule正好只排到前一天（或初始状态：schedule为空，第一次安排）
-                print("Here 1")
                 self.__schedule.append(daily_plan)
                 print(self.__schedule)
             elif len(self.__schedule) > index:
