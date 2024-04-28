@@ -16,8 +16,6 @@ class StudyTask(Task):
             raise ValueError("Invalid date format. Please use YYYY-MM-DD format.")
 
 class RegularTask(Task):
-    def __init__(self, name: str, hour: int, daily_hour: int):
+    def __init__(self, name: str, hour: int):
         super().__init__(name, hour)
-        if daily_hour < 1:
-            raise ValueError("Daily hours must be at least 1.")
-        self.daily_hour = daily_hour
+
