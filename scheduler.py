@@ -53,7 +53,6 @@ class TaskManagement:
                 deadline = self.__get_valid_date("Enter deadline (YYYY-MM-DD): ")
                 task = StudyTask(name, hours, deadline)
                 self.__ongoing_task[task.name] = task
-
         else:
             if name in self.__ongoing_task:
                 existing_task = self.__ongoing_task[name]
@@ -92,8 +91,8 @@ class TaskManagement:
             print(f"Task '{task_name}' is not in the taskboard.")
 
     def show_today_schedule(self):
-        today = date.today()  # 获取今天的日期
-        today_index = (today - self.__starting).days
+        print(f"Today is {self.__today}")
+        today_index = (self.__today - self.__starting).days
         if today_index < 0 or today_index >= len(self.__schedule):
             print("Today's schedule is not available.")
             return
@@ -110,7 +109,6 @@ class TaskManagement:
             return
 
         today_schedule = self.__schedule[today_index]
-
         for task_tuple in today_schedule:
             task_name, hours = task_tuple
             task = self.__ongoing_task[task_name]
@@ -152,7 +150,6 @@ class TaskManagement:
             day_index = (day - self.__today).days
             if day_index < len(self.__schedule):
                 daily_schedule = self.__schedule[day_index]
-
                 if daily_schedule:  # 检查日程是否为空
                     print(f"Day {day}: {daily_schedule}")
                 else:
@@ -163,9 +160,9 @@ class TaskManagement:
     def set_mode(self):
         mode_name = 'Concentrated' if self.__mode == 1 else 'Alternating'
         print(f"Current mode is {mode_name}.")
-        print("In CONCENTRATED mode, users focus on completing one task at a time in accordance with their deadlines. "
+        print("In CONCENTRATED mode, users focus on completing one task at a time in accordance with their deadlines.\n"
               "Regular tasks will always be scheduled even if the total duration of tasks on one day exceeds maximum.")
-        print("In ALTERNATING mode, users switch between multiple tasks on a day while still meeting their deadlines. "
+        print("In ALTERNATING mode, users switch between multiple tasks on a day while still meeting their deadlines.\n"
               "Regular tasks will be ignored if the total duration of tasks on one day exceeds maximum.")
         while True:
             mode_input = input("Enter mode (1 for Concentrated, 2 for Alternating, -1 to keep as it is and exit): ")
