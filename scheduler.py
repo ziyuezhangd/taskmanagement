@@ -57,7 +57,7 @@ class TaskManagement:
                 self.__ongoing_task[task.name] = task
                 if task.get_hour_per_day_schedule(self.__today) > self.__max_hour_daily:
                     print(f"It's hard to complete the task working at most {self.__max_hour_daily} hours per day. "
-                          f"Consider increase maximum daily working hours on the main interface.")
+                          f"Please consider increasing maximum daily working hours on the main interface.")
         else:
             if name in self.__ongoing_task:
                 existing_task = self.__ongoing_task[name]
@@ -125,8 +125,10 @@ class TaskManagement:
                         print("This is a study task.")
                         task.hour_left -= today_hour
                         if task.hour_left <= 0:
-                            print(f"Awesome! You have finished {task_name}. It will be removed from the task board.")
+                            print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
                             del self.__ongoing_task[task_name]
+                        # 添加对完成情况的回应
+                        # 添加检查ddl的逻辑
                         break
                     # regular
                     else:
@@ -134,7 +136,7 @@ class TaskManagement:
                         if today_hour >= hours:
                             print(f"Great! You completed {task_name} planned for today")
                         else:
-                            print(f"Unfortunately, you did not complete {task_name} planned for today")
+                            print(f"Don't be upset! Try to finish {task_name} next time.")
                         break
                 elif completed == 'no':
                     print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
