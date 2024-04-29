@@ -122,7 +122,7 @@ class TaskManagement:
                                                         f"How many hours did you actually spend on it? ")
                     # study
                     if isinstance(task, StudyTask):
-                        print("This is a study task.")
+                        # print("This is a study task.")
                         task.hour_left -= today_hour
                         if task.hour_left <= 0:
                             print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
@@ -177,6 +177,7 @@ class TaskManagement:
                 self.__mode = int(mode_input)
                 mode_name = 'Concentrated' if self.__mode == 1 else 'Alternating'
                 print(f"Mode set to {mode_name}.\n")
+                self.__task_modified = True
                 break
             else:
                 print("Invalid input. Please enter '1' for Concentrated or '2' for Round Robin or -1 to exit.")
@@ -194,6 +195,7 @@ class TaskManagement:
             elif 1 <= max_hour_daily <= 24:
                 self.__max_hour_daily = max_hour_daily
                 print(f"Daily maximum working hours set to {self.__max_hour_daily}.\n")
+                self.__task_modified = True
                 break
             else:
                 print("Invalid input. Please enter a number between 1 and 24 or -1.")
@@ -252,13 +254,14 @@ class TaskManagement:
                 self.ddl_sorting()
             elif self.__mode == 2:
                 self.alternating_sorting()
+        self.__task_modified = False
 
     def ddl_sorting(self):
         sorted_tasks = sorted(self.__ongoing_task.values(),
                               key=lambda task: task.deadline if isinstance(task, StudyTask) else date.max)
 
         # Initialize variables for schedule generation
-        current_day_index = 0
+        current_day_index = (self.__today - self.__starting).days
 
         # Reset the schedule
         self.__schedule = [set() for _ in range(30)]
