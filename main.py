@@ -31,7 +31,6 @@ def main():
         print("8 Set daily working hours")
         print("9 Statistics")  # 展示所有临近的ddl和任务完成百分比
         print("10 Regenerate schedule")  # 添加一个选项用于重新生成日程
-
         print('-' * 30)
         choice = input()
         if choice == "1":

@@ -122,44 +122,34 @@ class TaskManagement:
 
         for task_tuple in today_schedule:
             task_name, hours = task_tuple
-            if isinstance(task_name, StudyTask):
-                while True:
-                    completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
-                    if completed == 'yes':
-                        # 做了，问做了多久
-                        today_hour = self.__get_valid_hours(input(f"You are scheduled to do {task_name} for {hours} hours today. How many hours did you actually do it?"),minimum=1)
-                        if today_hour < task_name.hour_left:
-                            task_name.hour_left -= today_hour
-                            if today_hour >= hours:
-                                print("Great job!")
-                            print(f"You have did {task_name} for {today_hour} hours today. You still need to do it for {task_name.hour_left} hours in the future.")
-                            break
-                        else:
-                            completed_task = self.__ongoing_task.pop(task_name)
-                            self.__completed_task.update({task_name: completed_task})
-                            print(f"Awesome! You have finished {task_name}.")
-                            break
-                    elif completed == 'no':
-                        print(f"It's okay. I will reschedule {task_name} for you.")
-                        print("You can also choose to delete it on the main interface.")
+            task = self.__ongoing_task[task_name]
+            completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
+            while True:
+                if completed == 'yes':
+                    today_hour = self.__get_valid_hours(
+                        f"You are scheduled to do {task_name} for {hours} hours today. How many hours did you actually do it?  ")
+                    # study
+                    if isinstance(task, StudyTask):
+                        print("This is a study task.")
+                        task.hour_left -= today_hour
+                        if task.hour_left <= 0:
+                            print(f"Awesome! You have finished {task_name}. It will be removed from the schedule")
+                            del self.__ongoing_task[task_name]
                         break
+                    # regular
                     else:
-                        print("Invalid input. Please answer 'yes' or 'no'.")
-             # regular task
-            else:
-                while True:
-                    completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
-                    if completed == 'yes':
-                        # 做了，问做了多久
-                        today_hour = self.__get_valid_hours(input(
-                            f"You are scheduled to do {task_name} for {hours} hours today. How many hours did you actually do it?"),
-                                                            minimum=1)
+                        print("This is a regular task.")
                         if today_hour >= hours:
                             print(f"Great! You completed {task_name} planned for today")
-                    elif completed == 'no':
-                        print(f"Unfortunately, you did not complete {task_name} planned for today")
-                    else:
-                        print("Invalid input. Please answer 'yes' or 'no'.")
+                        else:
+                            print(f"Unfortunately, you did not complete {task_name} planned for today")
+                        break
+                elif completed == 'no':
+                    print(f"It's okay. Try to complete {task_name} later.")
+                    print("You can also choose to delete it on the main interface.")
+                    break
+                else:
+                    completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
         self.generate_schedule()
         print("Based on your task completion status, a new scheduler has been generated for you.")
 
