@@ -2,7 +2,6 @@ from datetime import date, timedelta
 from task import Task, StudyTask, RegularTask
 from datetime import datetime
 from operator import attrgetter
-import time
 
 
 class TaskManagement:
@@ -11,7 +10,7 @@ class TaskManagement:
         self.__starting = date.today()
         self.__schedule = []
         self.__mode = 1  # 1 means Concentrated, 2 means Alternating
-        self.__max_hour_daily = 4
+        self.__max_hour_daily = 5
         self.__today = self.__starting
         self.__task_modified = False
 
@@ -48,11 +47,17 @@ class TaskManagement:
                 existing_task.hour_left += additional_hours
                 existing_task.hour += additional_hours
                 print(f"Updated hours for task '{name}': {existing_task.hour_left} hours remaining.")
+                if existing_task.get_hour_per_day_schedule(self.__today) > self.__max_hour_daily:
+                    print(f"It's hard to complete the task working at most {self.__max_hour_daily} hours per day. "
+                          f"Consider increase maximum daily working hours on the main interface.")
             else:
                 hours = self.__get_valid_hours("Enter total hours needed: ")
                 deadline = self.__get_valid_date("Enter deadline (YYYY-MM-DD): ")
                 task = StudyTask(name, hours, deadline)
                 self.__ongoing_task[task.name] = task
+                if task.get_hour_per_day_schedule(self.__today) > self.__max_hour_daily:
+                    print(f"It's hard to complete the task working at most {self.__max_hour_daily} hours per day. "
+                          f"Consider increase maximum daily working hours on the main interface.")
         else:
             if name in self.__ongoing_task:
                 existing_task = self.__ongoing_task[name]
@@ -69,9 +74,8 @@ class TaskManagement:
         print(f"Task '{name}' added successfully.")
 
     def __check_urgency(self, hours_needed, deadline):
-        today = datetime.today().date()
         deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
-        days_available = (deadline_date - today).days
+        days_available = (deadline_date - self.__today).days
         total_hours_available = days_available * self.__max_hour_daily
         total_hours_with_overtime = days_available * 24
 
@@ -102,8 +106,7 @@ class TaskManagement:
             print(f"Task: {task[0]}, Hours: {task[1]}")
 
     def today_feedback(self):
-        today = date.today()
-        today_index = (today - self.__starting).days
+        today_index = (self.__today - self.__starting).days
         if today_index < 0 or today_index >= len(self.__schedule):
             print("Today's schedule is not available.")
             return
@@ -262,7 +265,7 @@ class TaskManagement:
         for task in sorted_tasks:
             if isinstance(task, StudyTask):
                 hours_needed = task.hour_left
-                days_to_deadline = max((task.deadline - date.today()).days, 1)  # Ensure at least 1 day to deadline
+                days_to_deadline = max((task.deadline - self.__today).days, 1)  # Ensure at least 1 day to deadline
 
                 # Calculate necessary daily hours to meet the deadline
                 necessary_daily_hours = hours_needed / days_to_deadline
@@ -350,15 +353,10 @@ class TaskManagement:
 
     def alternating_sorting(self):
         # 从today开始往后安排任务
-        # 清空之前安排时在Task中的记录
-        for task in self.__ongoing_task.values():
-            if isinstance(task, StudyTask):
-                task.hour_scheduled = 0
         # 记录当前安排的日期
         schedule_date = self.__today
         index = (schedule_date - self.__starting).days
-        # 把所有任务排序
-        # 整体按平均小时排序，平均小时相同的，ddl先的在前，regular在后
+        # 把所有任务排序：整体按平均小时排序，平均小时相同的，ddl先的在前，regular在后
         sorted_tasks = list(sorted(self.__ongoing_task.values(),
                                    key=lambda x: (-x.get_hour_per_day_schedule(schedule_date),
                                                   x.deadline if isinstance(x, StudyTask) else date.max)))
@@ -421,3 +419,7 @@ class TaskManagement:
             # 重新排序
             sorted_tasks.sort(key=lambda x: (-x.get_hour_per_day_schedule(schedule_date),
                                              x.deadline if isinstance(x, StudyTask) else date.max))
+        # 退出前清空安排任务时在Task中的记录
+        for task in self.__ongoing_task.values():
+            if isinstance(task, StudyTask):
+                task.hour_scheduled = 0
