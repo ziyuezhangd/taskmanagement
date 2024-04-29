@@ -19,13 +19,13 @@ class TaskManagement:
             print("There are currently no tasks.")
         else:
             # 获取仅包含 DeadlineTask 的任务列表
-            study_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, DeadlineTask)]
+            deadline_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, DeadlineTask)]
 
             # 按照截止日期对 DeadlineTask 进行排序
-            sorted_study_tasks = sorted(study_tasks, key=attrgetter('deadline'))
+            sorted_deadline_tasks = sorted(deadline_tasks, key=attrgetter('deadline'))
 
             print("Task Statistics:")
-            for task in sorted_study_tasks:
+            for task in sorted_deadline_tasks:
                 deadline_str = f"Deadline: Day {task.deadline}"
                 if task.hour > 0:
                     completion_percentage = (task.hour - task.hour_left) / task.hour * 100
@@ -46,17 +46,18 @@ class TaskManagement:
         return self.__today
 
     def add_task(self):
-        valid_task_types = ['study', 'regular', '-1']
-        task_type = input("Enter task type (study/regular/-1 to exit): ").lower()
+        valid_task_types = ['deadline', 'regular', '-1']
+        print("There are two task types. One is a task with a deadline, and the other is a regular task with a deadline.")
+        task_type = input("Enter task type (deadline/regular/-1 to exit): ").lower()
 
         while task_type not in valid_task_types:
-            print("Invalid task type. Please enter 'study' or 'regular' or '-1'.")
-            task_type = input("Enter task type (study/regular): ").lower()
+            print("Invalid task type. Please enter 'deadline' or 'regular' or '-1'.")
+            task_type = input("Enter task type (deadline/regular): ").lower()
         if task_type == '-1':
             return
         name = input("Enter task name: ")
 
-        if task_type == "study":
+        if task_type == "deadline":
             if name in self.__ongoing_task:
                 existing_task = self.__ongoing_task[name]
                 print(f"Task '{name}' already exists with {existing_task.hour_left} hours remaining.")
@@ -149,9 +150,9 @@ class TaskManagement:
                 if completed == 'yes':
                     today_hour = self.__get_valid_hours(f"You are scheduled to do {task_name} for {hours} hours today. "
                                                         f"How many hours did you actually spend on it? ")
-                    # study
+                    # deadline
                     if isinstance(task, DeadlineTask):
-                        # print("This is a study task.")
+                        # print("This is a deadline task.")
                         task.hour_left -= today_hour
                         if task.hour_left <= 0:
                             print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
@@ -362,21 +363,21 @@ class TaskManagement:
         # Notify that the scheduling has been updated
         print("Schedule updated with deadline sorting.")
 
-        # # 分离StudyTask和RegularTask
-        # study_tasks = []
+        # # 分离deadlineTask和RegularTask
+        # deadline_tasks = []
         # regular_tasks = []
         # for task in self.__ongoing_task.values():
-        #     if isinstance(task, StudyTask):
-        #         study_tasks.append(task)
+        #     if isinstance(task, deadlineTask):
+        #         deadline_tasks.append(task)
         #     elif isinstance(task, RegularTask):
         #         regular_tasks.append(task)
         #
-        # # 按截止日期排序StudyTask
-        # study_tasks.sort(key=lambda x: x.deadline)
+        # # 按截止日期排序deadlineTask
+        # deadline_tasks.sort(key=lambda x: x.deadline)
         #
         # # 安排任务
         # day_index = 0
-        # while study_tasks:
+        # while deadline_tasks:
         #     today_hours = 0
         #     if day_index >= len(self.__schedule):
         #         break
@@ -384,7 +385,7 @@ class TaskManagement:
         #     remaining_hours = self.__max_hour_daily - today_hours
         #
         #     new_tasks = []
-        #     for task in study_tasks:
+        #     for task in deadline_tasks:
         #         print(f"Assigning task {task.name} with {task.hour_left} hours left.")
         #
         #         if today_hours < self.__max_hour_daily:
@@ -397,7 +398,7 @@ class TaskManagement:
         #             remaining_hours = self.__max_hour_daily - today_hours
         #         if today_hours >= self.__max_hour_daily:
         #             break
-        #     study_tasks = new_tasks
+        #     deadline_tasks = new_tasks
         #
         #     # 补充RegularTask到每天的剩余时间
         #     for task in regular_tasks:
@@ -420,7 +421,7 @@ class TaskManagement:
         sorted_tasks = list(sorted(self.__ongoing_task.values(),
                                    key=lambda x: (-x.get_hour_per_day_schedule(schedule_date),
                                                   x.deadline if isinstance(x, DeadlineTask) else date.max)))
-        # 当没有未安排完的study任务时退出循环
+        # 当没有未安排完的deadline任务时退出循环
         while any(isinstance(task, DeadlineTask) for task in sorted_tasks) or (schedule_date - self.__today).days < 7:
             if len(self.__schedule) < index:
                 # 中间有间断，不应存在这种情况
