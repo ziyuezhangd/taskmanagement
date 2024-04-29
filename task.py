@@ -8,7 +8,7 @@ class Task:
         self.hour = hour
 
 
-class StudyTask(Task):
+class DeadlineTask(Task):
     def __init__(self, name: str, hour: int, deadline: str):
         super().__init__(name, hour)
         self.hour_left = self.hour
