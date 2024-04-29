@@ -242,13 +242,11 @@ class TaskManagement:
                 print("Invalid date format. Please enter a date in YYYY-MM-DD format.")
 
     def generate_schedule(self):
-        if len(self.__ongoing_task) == 0:
-            print("No task in the task board. Please add some tasks.")
-        else:
+        if len(self.__ongoing_task) != 0:
             if self.__mode == 1:
                 self.ddl_sorting()
             elif self.__mode == 2:
-                self.rr_sorting()
+                self.alternating_sorting()
 
     def ddl_sorting(self):
         sorted_tasks = sorted(self.__ongoing_task.values(),
@@ -350,7 +348,7 @@ class TaskManagement:
         #     day_index += 1
         #     print("DDL sorting completed.")
 
-    def rr_sorting(self):
+    def alternating_sorting(self):
         # 从today开始往后安排任务
         # 清空之前安排时在Task中的记录
         for task in self.__ongoing_task.values():
