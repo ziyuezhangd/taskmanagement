@@ -1,8 +1,5 @@
 from scheduler import TaskManagement
-from task import StudyTask, RegularTask
-from datetime import datetime
-
-#用户交互
+import sys
 
 
 def main():
@@ -18,7 +15,7 @@ def main():
 
     while True:
         print('-' * 30)
-        print("Welcome to task management!")
+        print(f"Welcome to task management! Today is {manager.get_today()}")
         print("Select:")
         print("1 Display task board")
         print("2 Add task")
@@ -27,9 +24,8 @@ def main():
         print("5 Today's feedback")
         print("6 Show this week's schedule")
         print("7 Set mode")
-        print("8 Set daily working hours")
-        print("9 Statistics")  # 展示所有临近的ddl和任务完成百分比
-        print("10 Regenerate schedule")  # 添加一个选项用于重新生成日程
+        print("8 Set maximum daily working hours")
+        print("9 Exit")
         print('-' * 30)
         choice = input()
         if choice == "1":
@@ -49,10 +45,7 @@ def main():
         elif choice == "8":
             manager.set_max_daily_hours()
         elif choice == "9":
-            manager.statistics()
-        elif choice == "10":
-            manager.generate_schedule()
-            print("Schedule regenerated.")
+            sys.exit()
         else:
             print("Invalid choice. Please try again.")
 

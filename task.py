@@ -11,7 +11,7 @@ class Task:
 class StudyTask(Task):
     def __init__(self, name: str, hour: int, deadline: str):
         super().__init__(name, hour)
-        self.hour_left = hour
+        self.hour_left = self.hour
         self.deadline = self._parse_date(deadline)
         self.hour_scheduled = 0
 

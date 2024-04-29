@@ -27,6 +27,9 @@ class TaskManagement:
     def __next_day(self):
         self.__today += timedelta(days=1)
 
+    def get_today(self):
+        return self.__today
+
     def add_task(self):
         valid_task_types = ['study', 'regular', '-1']
         task_type = input("Enter task type (study/regular/-1 to exit): ").lower()
@@ -44,8 +47,10 @@ class TaskManagement:
                 print(f"Task '{name}' already exists with {existing_task.hour_left} hours remaining.")
                 additional_hours = self.__get_valid_hours("Enter additional hours to add (enter 0 to keep as is): ",
                                                           minimum=0)
-                existing_task.hour_left += additional_hours
-                existing_task.hour += additional_hours
+                if additional_hours > 0:
+                    existing_task.hour_left += additional_hours
+                    existing_task.hour += additional_hours
+                    self.__task_modified = True
                 print(f"Updated hours for task '{name}': {existing_task.hour_left} hours remaining.")
                 if existing_task.get_hour_per_day_schedule(self.__today) > self.__max_hour_daily:
                     print(f"It's hard to complete the task working at most {self.__max_hour_daily} hours per day. "
@@ -55,6 +60,7 @@ class TaskManagement:
                 deadline = self.__get_valid_date("Enter deadline (YYYY-MM-DD): ")
                 task = StudyTask(name, hours, deadline)
                 self.__ongoing_task[task.name] = task
+                self.__task_modified = True
                 if task.get_hour_per_day_schedule(self.__today) > self.__max_hour_daily:
                     print(f"It's hard to complete the task working at most {self.__max_hour_daily} hours per day. "
                           f"Please consider increasing maximum daily working hours on the main interface.")
@@ -64,12 +70,15 @@ class TaskManagement:
                 print(f"Task '{name}' already exists with the daily minimum {existing_task.hour} hours remaining.")
                 additional_hours = self.__get_valid_hours("Enter additional hours to add (enter 0 to keep as is): ",
                                                           minimum=0)
-                existing_task.hour += additional_hours
+                if additional_hours > 0:
+                    existing_task.hour += additional_hours
+                    self.__task_modified = True
                 print(f"Updated hours for task '{name}': minimum {existing_task.hour} hours every day.")
             else:
                 hours = self.__get_valid_hours("Enter daily minimum hours: ", minimum=1)
                 task = RegularTask(name, hours)
                 self.__ongoing_task[task.name] = task
+                self.__task_modified = True
 
         print(f"Task '{name}' added successfully.")
 
@@ -90,11 +99,15 @@ class TaskManagement:
             return
         elif task_name in self.__ongoing_task:
             del self.__ongoing_task[task_name]
+            self.__task_modified = True
             print(f"Task '{task_name}' has been deleted from the taskboard.")
         else:
             print(f"Task '{task_name}' is not in the taskboard.")
 
     def show_today_schedule(self):
+        # 如有需要，重新安排
+        if not self.__schedule or self.__task_modified:
+            self._generate_schedule()
         print(f"Today is {self.__today}")
         today_index = (self.__today - self.__starting).days
         if today_index < 0 or today_index >= len(self.__schedule):
@@ -106,6 +119,7 @@ class TaskManagement:
             print(f"Task: {task[0]}, Hours: {task[1]}")
 
     def today_feedback(self):
+        self.show_today_schedule()  # 避免用户未展示schedule直接进入feedback而导致没有调用generate_schedule生成日程
         today_index = (self.__today - self.__starting).days
         if today_index < 0 or today_index >= len(self.__schedule):
             print("Today's schedule is not available.")
@@ -128,7 +142,15 @@ class TaskManagement:
                             print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
                             del self.__ongoing_task[task_name]
                         # 添加对完成情况的回应
+                        if today_hour < hours:
+                            self.__task_modified = True
+                        elif today_hour == hours:
+                            pass
+                        else:
+                            self.__task_modified = True
                         # 添加检查ddl的逻辑
+                        if task.deadline == self.__today:
+                            pass
                         break
                     # regular
                     else:
@@ -139,20 +161,24 @@ class TaskManagement:
                             print(f"Don't be upset! Try to finish {task_name} next time.")
                         break
                 elif completed == 'no':
+                    if isinstance(task, StudyTask):
+                        self.__task_modified = True
                     print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
                     print("If you don't need this task, you can delete it on the main interface.")
                     break
                 else:
                     completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
-        self.generate_schedule()
-        print("Based on your task completion status, a new scheduler has been generated for you.")
+        # print("Based on your task completion status, a new scheduler has been generated for you.")
         self.__next_day()
 
     def show_week_schedule(self):
-        print("This week's schedule :")
+        # 如有需要，重新安排
+        if not self.__schedule or self.__task_modified:
+            self._generate_schedule()
+        print("Schedule for the next 7 days:")
         for i in range(7):  # 显示接下来7天的日程
             day = self.__today + timedelta(days=i)
-            day_index = (day - self.__today).days
+            day_index = (day - self.__starting).days
             if day_index < len(self.__schedule):
                 daily_schedule = self.__schedule[day_index]
                 if daily_schedule:  # 检查日程是否为空
@@ -165,12 +191,10 @@ class TaskManagement:
     def set_mode(self):
         mode_name = 'Concentrated' if self.__mode == 1 else 'Alternating'
         print(f"Current mode is {mode_name}.")
-        print("In CONCENTRATED mode, users focus on completing one task at a time in accordance with their deadlines.\n"
-              "Regular tasks will always be scheduled even if the total duration of tasks on one day exceeds maximum.")
-        print("In ALTERNATING mode, users switch between multiple tasks on a day while still meeting their deadlines.\n"
-              "Regular tasks will be ignored if the total duration of tasks on one day exceeds maximum.")
+        print("In CONCENTRATED mode, users focus on completing one task at a time in accordance with their deadlines.")
+        print("In ALTERNATING mode, users switch between multiple tasks on a day while still meeting their deadlines.")
         while True:
-            mode_input = input("Enter mode (1 for Concentrated, 2 for Alternating, -1 to keep as it is and exit): ")
+            mode_input = input("Enter mode (1 for Concentrated, 2 for Alternating, -1 to keep as it is and continue): ")
             if mode_input == '-1':
                 return
             elif mode_input.isdigit() and mode_input in ['1', '2']:
@@ -184,12 +208,13 @@ class TaskManagement:
 
     def set_max_daily_hours(self):
         print(f"Current maximum daily working hours is {self.__max_hour_daily}.")
-        print("Note: When tasks are urgent and time-consuming, "
-              "the total duration of tasks scheduled on one day may exceed the maximum daily working hours. "
+        print("Note:\nWhen tasks with deadlines are urgent and time-consuming, "
+              "the total duration of tasks scheduled on one day may exceed the maximum daily working hours, "
+              "and regular tasks may be ignored."
               "Please prepare accordingly.")
         while True:
             max_hour_daily = self.__get_valid_hours("Enter maximum daily working hours (1-24) "
-                                                    "(-1 to keep as it is and exit): ", minimum=-1)
+                                                    "(-1 to keep as it is and continue): ", minimum=-1)
             if max_hour_daily == -1:
                 return
             elif 1 <= max_hour_daily <= 24:
@@ -248,12 +273,12 @@ class TaskManagement:
             except ValueError:
                 print("Invalid date format. Please enter a date in YYYY-MM-DD format.")
 
-    def generate_schedule(self):
+    def _generate_schedule(self):
         if len(self.__ongoing_task) != 0:
             if self.__mode == 1:
                 self.ddl_sorting()
             elif self.__mode == 2:
-                self.alternating_sorting()
+                self._alternating_sorting()
         self.__task_modified = False
 
     def ddl_sorting(self):
@@ -356,8 +381,7 @@ class TaskManagement:
         #     day_index += 1
         #     print("DDL sorting completed.")
 
-    def alternating_sorting(self):
-        # 从today开始往后安排任务
+    def _alternating_sorting(self):
         # 记录当前安排的日期
         schedule_date = self.__today
         index = (schedule_date - self.__starting).days
