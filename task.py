@@ -1,4 +1,5 @@
 from datetime import date
+import math
 
 
 class Task:
@@ -25,7 +26,7 @@ class StudyTask(Task):
                 date_str = input("Invalid date. Please enter a date after today (YYYY-MM-DD): ")
 
     def get_hour_per_day_schedule(self, date_schedule):
-        return (self.hour_left - self.hour_scheduled) / ((self.deadline - date_schedule).days + 1)
+        return math.ceil((self.hour_left - self.hour_scheduled) / ((self.deadline - date_schedule).days + 1))
 
 
 class RegularTask(Task):

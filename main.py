@@ -9,13 +9,12 @@ def main():
     manager = TaskManagement()
 
     print("Welcome to Task Scheduler!")
-    print("Before we start, you need to set the working mode and daily working hours.")
-    print("But you can modify them later.")
+    print("Before we start, please set the working mode and daily working hours.")
+    print("You can re-modify them anytime.\n")
 
     # 在开始前强制用户设置工作模式和每日工作小时数
     manager.set_mode()
-    manager.set_daily_workinghours()
-    ongoing_tasks = manager.get_ongoing_tasks()
+    manager.set_max_daily_hours()
 
     while True:
         print('-' * 30)
@@ -48,7 +47,7 @@ def main():
         elif choice == "7":
             manager.set_mode()
         elif choice == "8":
-            manager.set_daily_workinghours()
+            manager.set_max_daily_hours()
         elif choice == "9":
             manager.statistics()
         elif choice == "10":
