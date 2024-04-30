@@ -1,3 +1,4 @@
+import datetime
 from datetime import date
 import math
 
@@ -32,6 +33,9 @@ class DeadlineTask(Task):
 class RegularTask(Task):
     def __init__(self, name: str, hour: int):
         super().__init__(name, hour)
+        self.hour_left = self.hour
+
+
 
     def get_hour_per_day_schedule(self, date_schedule):
         return self.hour
