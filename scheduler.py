@@ -320,21 +320,17 @@ class TaskManagement:
         self.__task_modified = False
 
     def ddl_sorting(self):
-        # sorted_tasks = sorted(self.__ongoing_task.values(),
-        #                       key=lambda task: task.deadline if isinstance(task, StudyTask) else date.max)
-
-        # 把study tasks和regular tasks分离
         study_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, DeadlineTask)]
         regular_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, RegularTask)]
 
-        # study tasks按deadline排序
+        # Sort study tasks by deadline
         sorted_study_tasks = sorted(study_tasks, key=lambda task: task.deadline)
 
         current_day_index = (self.__today - self.__starting).days
         max_deadline = max((task.deadline for task in sorted_study_tasks if isinstance(task, DeadlineTask)),
                            default=self.__today)
-        num_days = (max_deadline - self.__today).days + 1   # 如果是index，被减数应该是__starting且index不需要+1；或者是计算可用天数
-        self.__schedule = [[] for _ in range(num_days)]  # 按ddl最晚的天数设置[]  # 会覆盖掉之前日期的schedule
+        num_days = (max_deadline - self.__today).days + 1   # 计算可用天数
+        self.__schedule = [set() for _ in range(num_days)]  # 按ddl最晚的天数设置[]  # 会覆盖掉之前日期的schedule
 
         for task in sorted_study_tasks:
             remaining_hours = task.hour_left
@@ -344,15 +340,17 @@ class TaskManagement:
             for i in range(current_day_index, min(task_deadline_index + 1, num_days)):   # index不应使用num_days，以及task_deadline理应比num_days小，因为后者是用max_deadline计算的
                 if i == task_deadline_index - 1 or i == task_deadline_index:
                     # ddl前一天和ddl当天没有max daily hour限制
-                    available_hours = 24  # 这里也需减去当天已安排的小时数吧
+                    available_hours = 24 - sum(hours for _, hours in self.__schedule[i])  # No max daily hour limit on the day before and the day of the deadline
                 else:
                     available_hours = max(self.__max_hour_daily - sum(hours for _, hours in self.__schedule[i]), 0)
 
                 if available_hours > 0:
                     hours_today = min(remaining_hours, available_hours)
-                    self.__schedule[i].append((task.name, hours_today))
+                    self.__schedule[i].add((task.name, hours_today))  # Add to set
                     remaining_hours -= hours_today
 
+                if remaining_hours <= 0:
+                    break  # Exit loop if task hours are fully allocated
                 # # 检查任务的截止日期是否是明天
                 # if task_deadline_index == current_day_index:
                 #     # 平分小时到今天和明天
@@ -364,15 +362,74 @@ class TaskManagement:
                 if remaining_hours <= 0: # 建议以此条件设置while循环，在内部递增index，不需要算循环次数的上限
                     break  # 如果任务小时已完全分配，则退出循环
 
+        # Schedule regular tasks with remaining available hours
         for i in range(num_days):  # 只要有deadline在，就不会排到regular
             available_hours = self.__max_hour_daily - sum(hours for _, hours in self.__schedule[i])
             for task in regular_tasks:
-                if available_hours > 0:
-                    task_hours_today = min(task.hour, available_hours)
-                    self.__schedule[i].append((task.name, task_hours_today))
+                task_hours_today = min(task.hour, available_hours)
+                if task_hours_today > 0:
+                    self.__schedule[i].add((task.name, task_hours_today))  # Add to set
                     available_hours -= task_hours_today
-                else:
-                    break
+    # def ddl_sorting(self):
+    #     # sorted_tasks = sorted(self.__ongoing_task.values(),
+    #     #                       key=lambda task: task.deadline if isinstance(task, StudyTask) else date.max)
+    #
+    #     # 把study tasks和regular tasks分离
+    #     study_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, DeadlineTask)]
+    #     regular_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, RegularTask)]
+    #
+    #     # study tasks按deadline排序
+    #     sorted_study_tasks = sorted(study_tasks, key=lambda task: task.deadline)
+    #
+    #     current_day_index = (self.__today - self.__starting).days
+    #     max_deadline = max((task.deadline for task in sorted_study_tasks if isinstance(task, DeadlineTask)),
+    #                        default=self.__today)
+    #     num_days = (max_deadline - self.__today).days + 1
+    #     self.__schedule = [set() for _ in range(num_days)]  # 按ddl最晚的天数设置[]
+    #
+    #     for task in sorted_study_tasks:
+    #         remaining_hours = task.hour_left
+    #         task_deadline_index = (task.deadline - self.__starting).days + 1
+    #
+    #         # 根据每天的剩余小时数分配任务
+    #         for i in range(current_day_index, min(task_deadline_index + 1, num_days)):
+    #             if i == task_deadline_index - 1 or i == task_deadline_index:
+    #                 # ddl前一天和ddl当天没有max daily hour限制
+    #                 available_hours = 24
+    #             else:
+    #                 available_hours = max(self.__max_hour_daily - sum(hours for _, hours in self.__schedule[i]), 0)
+    #
+    #             if available_hours > 0:
+    #                 hours_today = min(remaining_hours, available_hours)
+    #                 self.__schedule[i].add((task.name, hours_today))
+    #                 remaining_hours -= hours_today
+    #
+    #             # # 检查任务的截止日期是否是明天
+    #             # if task_deadline_index == current_day_index:
+    #             #     # 平分小时到今天和明天
+    #             #     hours_today = remaining_hours / 2
+    #             #     hours_tomorrow = remaining_hours - hours_today
+    #             #     self.__schedule[current_day_index].append((task.name, hours_today))
+    #             #     self.__schedule[current_day_index].append((task.name, hours_tomorrow))
+    #
+    #             if remaining_hours <= 0:
+    #                 break  # 如果任务小时已完全分配，则退出循环
+    #
+    #     for i in range(num_days):
+    #         available_hours = self.__max_hour_daily - sum(hours for _, hours in self.__schedule[i])
+    #         for task in regular_tasks:
+    #             if available_hours > 0:
+    #                 task_hours_today = min(task.hour, available_hours)
+    #                 self.__schedule[i].add((task.name, task_hours_today))
+    #                 available_hours -= task_hours_today
+    #             else:
+    #                 break
+    #
+    #
+    #
+    #
+
+
 
         # for task in sorted_study_task:
         # 排完一个deadline任务的所有日程再开启下一个deadline任务的日程安排
