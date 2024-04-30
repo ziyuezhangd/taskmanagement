@@ -157,16 +157,18 @@ class TaskManagement:
                         if task.hour_left <= 0:
                             print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
                             del self.__ongoing_task[task_name]
-                        # 添加对完成情况的回应
-                        if today_hour < hours and task.deadline != self.__today:
-                            print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
-                            self.__task_modified = True
-                        elif today_hour == hours:
-                            print(f"Great! You have completed your plan to do {task_name} for {hours} hours today.")
-                            pass
                         else:
-                            print(f"Excellent! You exceeded your plan to do {task_name} today. You actually did {task_name} for {hours} hours.")
-                            self.__task_modified = True
+                            # 添加对完成情况的回应
+                            if today_hour < hours and task.deadline != self.__today:
+                                print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
+                                self.__task_modified = True
+                            elif today_hour == hours:
+                                print(f"Great! You have completed your plan to do {task_name} for {hours} hours today.")
+                                pass
+                            else:
+                                print(f"Excellent! You exceeded your plan to do {task_name} today. "
+                                      f"You actually did {task_name} for {hours} hours.")
+                                self.__task_modified = True
                         # 添加检查ddl的逻辑
                         if task.deadline == self.__today and task.hour_left != 0:
                             print(f"Unfortunately, the deadline of {task_name} is today, but you didn't complete it.")
