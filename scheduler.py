@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from task import Task, DeadlineTask, RegularTask
+from task import DeadlineTask, RegularTask
 from datetime import datetime
 from operator import attrgetter
 
@@ -32,7 +32,9 @@ class TaskManagement:
                 else:
                     completion_percentage = 100  # 防止除以零
 
-                print(f"{task.name} - {deadline_str}, Completion: {completion_percentage:.2f}%. {task.hour_left} hours remaining")
+                print(f"{task.name} - {deadline_str}, "
+                      f"Completion: {completion_percentage:.2f}%. "
+                      f"{task.hour_left} hours remaining")
 
             # 输出regular task类型的任务统计信息
             for task_name, task in self.__ongoing_task.items():
@@ -40,14 +42,17 @@ class TaskManagement:
                     print(f"{task_name} with minimum daily {task.hour} hours has no specific deadline.")
 
     def __next_day(self):
+        """Start the next day"""
         self.__today += timedelta(days=1)
 
     def get_today(self):
+        """Get today's date"""
         return self.__today
 
     def add_task(self):
         valid_task_types = ['deadline', 'regular', '-1']
-        print("There are two task types. One is a task with a deadline, and the other is a regular task with a deadline.")
+        print("There are two task types: one is task with a deadline, "
+              "the other is regular task without specific deadline.")
         task_type = input("Enter task type (deadline/regular/-1 to exit): ").lower()
 
         while task_type not in valid_task_types:
@@ -98,18 +103,8 @@ class TaskManagement:
 
         print(f"Task '{name}' added successfully.")
 
-    def __check_urgency(self, hours_needed, deadline):
-        deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
-        days_available = (deadline_date - self.__today).days
-        total_hours_available = days_available * self.__max_hour_daily
-        total_hours_with_overtime = days_available * 24
-
-        urgent = hours_needed > total_hours_available
-        impossible = hours_needed > total_hours_with_overtime
-
-        return urgent, impossible
-
     def delete_task(self):
+        """Delete a task from taskboard"""
         task_name = input("Enter the name of the task to delete (-1 to exit): ")
         if task_name == '-1':
             return
@@ -121,7 +116,7 @@ class TaskManagement:
             print(f"Task '{task_name}' is not in the taskboard.")
 
     def show_today_schedule(self):
-        # 如有需要，重新安排
+        # Reschedule if needed
         if not self.__schedule or self.__task_modified:
             self._generate_schedule()
         print(f"Today is {self.__today}")
@@ -135,7 +130,10 @@ class TaskManagement:
             print(f"Task: {task[0]}, Hours: {task[1]}")
 
     def today_feedback(self):
-        self.show_today_schedule()  # 避免用户未展示schedule直接进入feedback而导致没有调用generate_schedule生成日程
+        """"""
+        # Display today's schedule at first
+        # Avoid users directly report feedback without display schedule, resulting in not generating/updating schedule
+        self.show_today_schedule()
         today_index = (self.__today - self.__starting).days
         if today_index < 0 or today_index >= len(self.__schedule):
             print("Today's schedule is not available.")
@@ -152,13 +150,12 @@ class TaskManagement:
                                                         f"How many hours did you actually spend on it? ")
                     # deadline
                     if isinstance(task, DeadlineTask):
-                        # print("This is a deadline task.")
                         task.hour_left -= today_hour
+                        # Response to the feedback
                         if task.hour_left <= 0:
                             print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
                             del self.__ongoing_task[task_name]
                         else:
-                            # 添加对完成情况的回应
                             if today_hour < hours and task.deadline != self.__today:
                                 print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
                                 self.__task_modified = True
@@ -169,11 +166,12 @@ class TaskManagement:
                                 print(f"Excellent! You exceeded your plan to do {task_name} today. "
                                       f"You actually did {task_name} for {hours} hours.")
                                 self.__task_modified = True
-                        # 添加检查ddl的逻辑
+                        # Check if task's deadline is today
                         if task.deadline == self.__today and task.hour_left != 0:
                             print(f"Unfortunately, the deadline of {task_name} is today, but you didn't complete it.")
                             while True:
-                                due_choice = input("Do you want to delay the deadline or delete the task?\nEnter a later date to postpone or enter -1 to delete the task: ")
+                                due_choice = input("Do you want to delay the deadline or delete the task?\n"
+                                                   "Enter a later date to postpone or enter -1 to delete the task: ")
                                 if due_choice == '-1':
                                     del self.__ongoing_task[task_name]
                                     print(f"Task '{task_name}' has been deleted from the taskboard.")
@@ -184,12 +182,14 @@ class TaskManagement:
                                         if new_ddl > self.__today:
                                             self.__ongoing_task[task_name].deadline = new_ddl
                                             print(f"Task '{task_name}' deadline has been postponed to {new_ddl}.")
+                                            self.__task_modified = True
                                             break
                                         else:
-                                            print("Invalid date. Please enter a valid date in the format YYYY-MM-DD that is later than today.")
+                                            print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
+                                                  "that is later than today.")
                                     except ValueError:
-                                        print("Invalid date. Please enter a valid date in the format YYYY-MM-DD that is later than today.")
-
+                                        print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
+                                              "that is later than today.")
                         break
                     # regular
                     else:
@@ -204,7 +204,8 @@ class TaskManagement:
                         if task.deadline == self.__today:
                             print(f"Unfortunately, the deadline of {task_name} is today, but you didn't complete it.")
                             while True:
-                                due_choice = input("Do you want to delay the deadline or delete the task?\nEnter a later date to postpone or enter -1 to delete the task: ")
+                                due_choice = input("Do you want to delay the deadline or delete the task?\n"
+                                                   "Enter a later date to postpone or enter -1 to delete the task: ")
                                 if due_choice == '-1':
                                     del self.__ongoing_task[task_name]
                                     print(f"Task '{task_name}' has been deleted from the taskboard.")
@@ -217,29 +218,31 @@ class TaskManagement:
                                             print(f"Task '{task_name}' deadline has been postponed to {new_ddl}.")
                                             break
                                         else:
-                                            print("Invalid date. Please enter a valid date in the format YYYY-MM-DD that is later than today.")
+                                            print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
+                                                  "that is later than today.")
                                     except ValueError:
-                                        print("Invalid date. Please enter a valid date in the format YYYY-MM-DD that is later than today.")
+                                        print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
+                                              "that is later than today.")
                             break
                     print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
                     print("If you don't need this task, you can delete it on the main interface.")
                     break
                 else:
                     completed = input(f"Did you do '{task_name}' today? (yes/no): ").lower()
-        # print("Based on your task completion status, a new scheduler has been generated for you.")
         self.__next_day()
 
     def show_week_schedule(self):
-        # 如有需要，重新安排
+        """Display the schedule for the next 7 days"""
+        # Reschedule if needed
         if not self.__schedule or self.__task_modified:
             self._generate_schedule()
         print("Schedule for the next 7 days:")
-        for i in range(7):  # 显示接下来7天的日程
+        for i in range(7):  # Display the schedule for the next 7 days
             day = self.__today + timedelta(days=i)
             day_index = (day - self.__starting).days
             if day_index < len(self.__schedule):
                 daily_schedule = self.__schedule[day_index]
-                if daily_schedule:  # 检查日程是否为空
+                if daily_schedule:  # Check if no schedule for that day
                     print(f"Day {day}: {daily_schedule}")
                 else:
                     print(f"Day {day}: No tasks scheduled.")
@@ -308,6 +311,7 @@ class TaskManagement:
                 print("Invalid date format. Please enter a date in YYYY-MM-DD format.")
 
     def _generate_schedule(self):
+        """Generate/regenerate schedule - called when displaying schedule"""
         if len(self.__ongoing_task) != 0:
             if self.__mode == 1:
                 self.ddl_sorting()
@@ -329,18 +333,18 @@ class TaskManagement:
         current_day_index = (self.__today - self.__starting).days
         max_deadline = max((task.deadline for task in sorted_study_tasks if isinstance(task, DeadlineTask)),
                            default=self.__today)
-        num_days = (max_deadline - self.__today).days + 1
-        self.__schedule = [[] for _ in range(num_days)]  # 按ddl最晚的天数设置[]
+        num_days = (max_deadline - self.__today).days + 1   # 如果是index，被减数应该是__starting且index不需要+1；或者是计算可用天数
+        self.__schedule = [[] for _ in range(num_days)]  # 按ddl最晚的天数设置[]  # 会覆盖掉之前日期的schedule
 
         for task in sorted_study_tasks:
             remaining_hours = task.hour_left
-            task_deadline_index = (task.deadline - self.__starting).days + 1
+            task_deadline_index = (task.deadline - self.__starting).days + 1  # index的计算这里不用+1
 
             # 根据每天的剩余小时数分配任务
-            for i in range(current_day_index, min(task_deadline_index + 1, num_days)):
+            for i in range(current_day_index, min(task_deadline_index + 1, num_days)):   # index不应使用num_days，以及task_deadline理应比num_days小，因为后者是用max_deadline计算的
                 if i == task_deadline_index - 1 or i == task_deadline_index:
                     # ddl前一天和ddl当天没有max daily hour限制
-                    available_hours = 24
+                    available_hours = 24  # 这里也需减去当天已安排的小时数吧
                 else:
                     available_hours = max(self.__max_hour_daily - sum(hours for _, hours in self.__schedule[i]), 0)
 
@@ -357,10 +361,10 @@ class TaskManagement:
                 #     self.__schedule[current_day_index].append((task.name, hours_today))
                 #     self.__schedule[current_day_index].append((task.name, hours_tomorrow))
 
-                if remaining_hours <= 0:
+                if remaining_hours <= 0: # 建议以此条件设置while循环，在内部递增index，不需要算循环次数的上限
                     break  # 如果任务小时已完全分配，则退出循环
 
-        for i in range(num_days):
+        for i in range(num_days):  # 只要有deadline在，就不会排到regular
             available_hours = self.__max_hour_daily - sum(hours for _, hours in self.__schedule[i])
             for task in regular_tasks:
                 if available_hours > 0:
@@ -370,11 +374,18 @@ class TaskManagement:
                 else:
                     break
 
-
-
-
-
-
+        # for task in sorted_study_task:
+        # 排完一个deadline任务的所有日程再开启下一个deadline任务的日程安排
+        #   while True: 从today_index开始逐天循环，直到该任务安排完退出
+        #       if 不是ddl当天：
+        #           把regular任务全部排上
+        #           剩余时间全部排给当前deadline任务
+        #       else 是ddl当天：
+        #           计算任务还剩多少小时
+        #           如果未超过当天max，先把ddl任务排完（，再排上regular），退出while
+        #           如果超过当天max，把ddl任务全部安排完，退出while
+        #           如果大于24，提醒用户可能无法完成，安排到24，退出while（另一种更make sense的做法是回溯把之前天的regular任务也移除，但比较麻烦）
+        #       更新today_index
 
         # # 分离StudyTask和RegularTask
         # study_tasks = []
@@ -427,30 +438,34 @@ class TaskManagement:
         #     print("DDL sorting completed.")
 
     def _alternating_sorting(self):
-        # 记录当前安排的日期
+        """Schedule tasks alternatively"""
+        # Store current scheduling date
         schedule_date = self.__today
         index = (schedule_date - self.__starting).days
-        # 把所有任务排序：整体按平均小时排序，平均小时相同的，ddl先的在前，regular在后
+        # Sort all tasks: descending by average hour per day, if same, ascending by deadline, regular tasks at last
         sorted_tasks = list(sorted(self.__ongoing_task.values(),
                                    key=lambda x: (-x.get_hour_per_day_schedule(schedule_date),
                                                   x.deadline if isinstance(x, DeadlineTask) else date.max)))
-        # 当没有未安排完的deadline任务时退出循环
+        # Exit the loop if no deadline tasks in the pool
+        # Exception: no deadline tasks but schedule range less than 7 days - schedule regular tasks for the left days
         while any(isinstance(task, DeadlineTask) for task in sorted_tasks) or (schedule_date - self.__today).days < 7:
             if len(self.__schedule) < index:
-                # 中间有间断，不应存在这种情况
+                # There is a gap in the schedule - shouldn't happen
                 for i in range(len(self.__schedule), index):
                     self.__schedule.append(set())
-            # 安排一天的任务
+            # Schedule tasks for the current scheduling day
             daily_plan = set()
             daily_hour = 0
+            # Loop through the task pool
             for task in sorted_tasks:
-                # 当天的任务量超过max hour就停止安排（但会继续遍历完检查是否有ddl临近的任务）
+                # Stop scheduling for the current day if total hours exceed max hours
+                # Will still go through the rest tasks in the pool to check if there is a task with ddl on current day
                 if self.__max_hour_daily <= daily_hour:
-                    # 如果有ddl当天的任务，必须安排
+                    # If ddl is current day, must be scheduled
                     if isinstance(task, RegularTask) or task.deadline != schedule_date:
                         continue
                 hour_task = task.get_hour_per_day_schedule(schedule_date)
-                # 添加任务到当天
+                # Add task to the current day
                 if isinstance(task, DeadlineTask):
                     if task.deadline == schedule_date:
                         hour_task = task.hour_left - task.hour_scheduled
@@ -461,14 +476,14 @@ class TaskManagement:
                     hour_task = min(hour_task, self.__max_hour_daily - daily_hour)
                 daily_plan.add((task.name, hour_task))
                 daily_hour += hour_task
-                # 更新该任务的安排情况
+                # Update the schedule for that task
                 if isinstance(task, DeadlineTask):
                     task.hour_scheduled += hour_task
-            # 如超时，检查当天的任务是否有可以推迟的
+            # If total hours exceed max hours, check if there are tasks to postpone
             if daily_hour > self.__max_hour_daily:
                 modify_tasks = set()
                 for task_name, hour in daily_plan:
-                    # 检查regular
+                    # Check for regular tasks
                     if isinstance(self.__ongoing_task.get(task_name), RegularTask):
                         while hour != 0 and daily_hour > self.__max_hour_daily:
                             hour -= 1
@@ -476,24 +491,26 @@ class TaskManagement:
                         modify_tasks.add((task_name, hour))
                     if daily_hour <= self.__max_hour_daily:
                         break
-            # 将当天任务安排添加到总安排列表中
+            # Add schedule for current day to the schedule list
             if len(self.__schedule) == index:
-                # 之前的schedule正好只排到前一天（或初始状态：schedule为空，第一次安排）
+                # Previous schedule ends on the last day
+                # Or initial state: empty schedule
                 self.__schedule.append(daily_plan)
             elif len(self.__schedule) > index:
-                # 之前的schedule已经排好，需从中间修改今天及之后的安排
+                # Previous schedule covers the current day, needs to modify not append
                 self.__schedule[index] = daily_plan
 
-            # 更新schedule_date和index，准备开启下一天的安排
+            # Update current scheduling date and its index
+            # Prepare to schedule for the next day
             schedule_date += timedelta(days=1)
             index += 1
-            # 从待安排任务列表中清除已经安排完成的任务，保留所有regular
+            # Clear deadline tasks that have finished scheduling from the pool
             sorted_tasks = list(filter(lambda x: isinstance(x, RegularTask) or x.hour_scheduled < x.hour_left,
                                        sorted_tasks))
-            # 重新排序
+            # Reorder
             sorted_tasks.sort(key=lambda x: (-x.get_hour_per_day_schedule(schedule_date),
                                              x.deadline if isinstance(x, DeadlineTask) else date.max))
-        # 退出前清空安排任务时在Task中的记录
+        # Before finishing scheduling, clear scheduled hour records in object Tasks
         for task in self.__ongoing_task.values():
             if isinstance(task, DeadlineTask):
                 task.hour_scheduled = 0
