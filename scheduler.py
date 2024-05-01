@@ -18,10 +18,10 @@ class TaskManagement:
         if not self.__ongoing_task:
             print("There are currently no tasks.")
         else:
-            # 获取仅包含 DeadlineTask 的任务列表
+            # Get the task list containing only DeadlineTask
             deadline_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, DeadlineTask)]
 
-            # 按照截止日期对 DeadlineTask 进行排序
+            # Sort DeadlineTasks by deadline
             sorted_deadline_tasks = sorted(deadline_tasks, key=attrgetter('deadline'))
 
             print("Task Statistics:")
@@ -30,13 +30,13 @@ class TaskManagement:
                 if task.hour > 0:
                     completion_percentage = (task.hour - task.hour_left) / task.hour * 100
                 else:
-                    completion_percentage = 100  # 防止除以零
+                    completion_percentage = 100  # Prevent division by zero
 
                 print(f"{task.name} - {deadline_str}, "
                       f"Completion: {completion_percentage:.2f}%. "
                       f"{task.hour_left} hours remaining")
 
-            # 输出regular task类型的任务统计信息
+            # Print statistics information of RegularTask
             for task_name, task in self.__ongoing_task.items():
                 if not isinstance(task, DeadlineTask):
                     print(f"{task_name} with minimum daily {task.hour} hours has no specific deadline.")
@@ -289,7 +289,7 @@ class TaskManagement:
 
 
     def __get_valid_hours(self, prompt, minimum=1):
-        """获取并验证小时数输入"""
+        # Get and validate hours input
         while True:
             try:
                 hours = int(input(prompt))
@@ -301,7 +301,7 @@ class TaskManagement:
                 print("Invalid input. Please enter a valid integer for hours.")
 
     def __get_valid_date(self, prompt):
-        """获取并验证日期输入"""
+        """Get and validate date input"""
         while True:
             date_str = input(prompt)
             try:
@@ -345,11 +345,11 @@ class TaskManagement:
             remaining_hours = task.hour_left
             task_deadline_index = (task.deadline - self.__starting).days  # index的计算这里不用+1
 
-            # 根据每天的剩余小时数分配任务
+            # Assign tasks based on remaining hours per day
             current_day_index = (self.__today - self.__starting).days
-            while True: # index不应使用num_days，以及task_deadline理应比num_days小，因为后者是用max_deadline计算的
+            while True: # Index should not use num_days, and task_deadline should be smaller than num_days, because the latter is calculated using max_deadline
                 if current_day_index == task_deadline_index:
-                    # ddl当天没有max daily hour限制
+                    # There is no max daily hour limit on the deadline day
                     available_hours = 24 - sum(hours for _, hours in self.__schedule[current_day_index])  # No max daily hour limit on the day before and the day of the deadline
                 else:
                     for r in regular_tasks:

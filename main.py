@@ -9,7 +9,7 @@ def main():
     print("Before we start, please set the working mode and daily working hours.")
     print("You can re-modify them anytime.\n")
 
-    # 在开始前强制用户设置工作模式和每日工作小时数
+    # Ask the user if they need to set the working mode and daily working hours
     manager.set_mode()
     manager.set_max_daily_hours()
 

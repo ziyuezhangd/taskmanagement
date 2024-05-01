@@ -1,15 +1,13 @@
 import datetime
 from datetime import date
 import math
-
-
 class Task:
     def __init__(self, name: str, hour: int):
         self.name = name
         self.hour = hour
 
-
 class DeadlineTask(Task):
+    """The task type with a deadline"""
     def __init__(self, name: str, hour: int, deadline: str):
         super().__init__(name, hour)
         self.hour_left = self.hour
@@ -31,11 +29,10 @@ class DeadlineTask(Task):
 
 
 class RegularTask(Task):
+    """The task type without a deadline, but with a daily minimum hour"""
     def __init__(self, name: str, hour: int):
         super().__init__(name, hour)
         self.hour_left = self.hour
-
-
 
     def get_hour_per_day_schedule(self, date_schedule):
         return self.hour
