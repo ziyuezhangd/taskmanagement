@@ -100,6 +100,10 @@ class TaskManagement:
                 task = RegularTask(name, hours)
                 self.__ongoing_task[task.name] = task
                 self.__task_modified = True
+            if sum([x.hour for x in self.__ongoing_task.values() if
+                    isinstance(x, RegularTask)]) > self.__max_hour_daily:
+                print(f"It's hard to complete existing regular tasks at most {self.__max_hour_daily} hours per day. "
+                      f"Please consider increasing maximum daily working hours on the main interface.")
 
         print(f"Task '{name}' added successfully.")
 
@@ -152,44 +156,44 @@ class TaskManagement:
                     if isinstance(task, DeadlineTask):
                         task.hour_left -= today_hour
                         # Response to the feedback
-                        if task.hour_left <= 0:
+                        if task.hour_left <= 0:  # If task is finished
                             print(f"Awesome! You have finished {task_name}. It will be removed from the taskboard.")
                             del self.__ongoing_task[task_name]
-                        else:
-                            if today_hour < hours and task.deadline != self.__today:
-                                print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
-                                self.__task_modified = True
-                            elif today_hour == hours:
-                                print(f"Great! You have completed your plan to do {task_name} for {hours} hours today.")
-                                pass
-                            else:
-                                print(f"Excellent! You exceeded your plan to do {task_name} today. "
-                                      f"You actually did {task_name} for {hours} hours.")
-                                self.__task_modified = True
-                        # Check if task's deadline is today
-                        if task.deadline == self.__today and task.hour_left != 0:
-                            print(f"Unfortunately, the deadline of {task_name} is today, but you didn't complete it.")
-                            while True:
-                                due_choice = input("Do you want to delay the deadline or delete the task?\n"
-                                                   "Enter a later date to postpone or enter -1 to delete the task: ")
-                                if due_choice == '-1':
-                                    del self.__ongoing_task[task_name]
-                                    print(f"Task '{task_name}' has been deleted from the taskboard.")
-                                    break
+                        else:  # If task is not finished
+                            if task.deadline != self.__today:  # If deadline is not today
+                                if today_hour < hours:
+                                    print(f"It's okay. {task_name} will be rescheduled in the upcoming days.")
+                                    self.__task_modified = True
+                                elif today_hour == hours:
+                                    print(f"Great! You have completed your plan to do {task_name} for {hours} hours today.")
+                                    pass
                                 else:
-                                    try:
-                                        new_ddl = datetime.strptime(due_choice, "%Y-%m-%d").date()
-                                        if new_ddl > self.__today:
-                                            self.__ongoing_task[task_name].deadline = new_ddl
-                                            print(f"Task '{task_name}' deadline has been postponed to {new_ddl}.")
-                                            self.__task_modified = True
-                                            break
-                                        else:
+                                    print(f"Excellent! You exceeded your plan to do {task_name} today. "
+                                          f"You actually did {task_name} for {hours} hours.")
+                                    self.__task_modified = True
+                            else:  # If deadline is today
+                                print(f"Unfortunately, the deadline of {task_name} is today, but you didn't complete it.")
+                                while True:
+                                    due_choice = input("Do you want to delay the deadline or delete the task?\n"
+                                                       "Enter a later date to postpone or enter -1 to delete the task: ")
+                                    if due_choice == '-1':
+                                        del self.__ongoing_task[task_name]
+                                        print(f"Task '{task_name}' has been deleted from the taskboard.")
+                                        break
+                                    else:
+                                        try:
+                                            new_ddl = datetime.strptime(due_choice, "%Y-%m-%d").date()
+                                            if new_ddl > self.__today:
+                                                self.__ongoing_task[task_name].deadline = new_ddl
+                                                print(f"Task '{task_name}' deadline has been postponed to {new_ddl}.")
+                                                self.__task_modified = True
+                                                break
+                                            else:
+                                                print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
+                                                      "that is later than today.")
+                                        except ValueError:
                                             print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
                                                   "that is later than today.")
-                                    except ValueError:
-                                        print("Invalid date. Please enter a valid date in the format YYYY-MM-DD "
-                                              "that is later than today.")
                         break
                     # regular
                     else:
@@ -320,57 +324,77 @@ class TaskManagement:
         self.__task_modified = False
 
     def ddl_sorting(self):
-        study_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, DeadlineTask)]
-        regular_tasks = [task for task in self.__ongoing_task.values() if isinstance(task, RegularTask)]
+        """Schedule tasks by deadline"""
+        # Divide tasks
+        deadline_tasks = []
+        regular_tasks = []
+        max_deadline = self.__today
+        for task in self.__ongoing_task.values():
+            if isinstance(task, DeadlineTask):
+                deadline_tasks.append(task)
+                if task.deadline > max_deadline:
+                    max_deadline = task.deadline
+            else:
+                regular_tasks.append(task)
 
-        # Sort study tasks by deadline
-        sorted_study_tasks = sorted(study_tasks, key=lambda task: task.deadline)
-
-        max_deadline = max((task.deadline for task in sorted_study_tasks if isinstance(task, DeadlineTask)),
-                           default=self.__today)
-        max_index = (max_deadline - self.__starting).days  # max index
+        # Sort deadline tasks by deadline
+        sorted_deadline_tasks = sorted(deadline_tasks, key=lambda x: x.deadline)
+        max_index = (max_deadline - self.__starting).days  # max deadline index
         today_index = (self.__today - self.__starting).days  # today index
-        lastday_index = today_index
+        current_day_index = today_index  # current day index
+        lastday_index = current_day_index  # last day index
 
-        if len(self.__schedule) < today_index:
-            for _ in range(len(self.__schedule, today_index)):
+        if len(self.__schedule) < current_day_index:
+            for _ in range(len(self.__schedule), current_day_index):
                 self.__schedule.append(set())
-        for i in range(today_index, max(max_index + 1, today_index + 7)):
+        for i in range(current_day_index, max(max_index + 1, current_day_index + 7)):
             if len(self.__schedule) > i:
                 self.__schedule[i] = set()
             elif len(self.__schedule) == i:
                 self.__schedule.append(set())
 
-        for task in sorted_study_tasks:
+        hour_assigned = 0
+        for task in sorted_deadline_tasks:
             remaining_hours = task.hour_left
-            task_deadline_index = (task.deadline - self.__starting).days  # index的计算这里不用+1
-
+            task_deadline_index = (task.deadline - self.__starting).days
+            # sum(hours for _, hours in self.__schedule[current_day_index])
             # Assign tasks based on remaining hours per day
-            current_day_index = (self.__today - self.__starting).days
-            while True: # Index should not use num_days, and task_deadline should be smaller than num_days, because the latter is calculated using max_deadline
-                if current_day_index == task_deadline_index:
-                    # There is no max daily hour limit on the deadline day
-                    available_hours = 24 - sum(hours for _, hours in self.__schedule[current_day_index])  # No max daily hour limit on the day before and the day of the deadline
-                else:
-                    for r in regular_tasks:
-                        self.__schedule[current_day_index].add((r.name, r.hour))
-                    available_hours = max(self.__max_hour_daily - sum(hours for _, hours in self.__schedule[current_day_index]), 0)
+            while True:
+                if current_day_index == task_deadline_index:  # On the deadline day
+                    # No max daily hour limit on the deadline day
+                    available_hours = 24 - hour_assigned
+                else:  # Before the deadline day
+                    # Add the regular tasks at first
+                    if hour_assigned == 0:
+                        for r in regular_tasks:
+                            self.__schedule[current_day_index].add((r.name, r.hour))
+                            hour_assigned += r.hour
+                    available_hours = max(self.__max_hour_daily - hour_assigned, 0)
 
                 if available_hours > 0:
                     hours_today = min(remaining_hours, available_hours)
                     self.__schedule[current_day_index].add((task.name, hours_today))  # Add to set
                     remaining_hours -= hours_today
-                    if sum(hours for _, hours in self.__schedule[current_day_index]) >= self.__max_hour_daily:
+                    hour_assigned += hours_today
+                    if hour_assigned >= self.__max_hour_daily:
                         current_day_index += 1
+                        hour_assigned = 0
                     else:
                         if current_day_index == task_deadline_index:
                             for r in regular_tasks:
-                                if sum(hours for _, hours in self.__schedule[current_day_index]) < self.__max_hour_daily:
-                                    self.__schedule[current_day_index].add((r.name, r.hour))
+                                if hour_assigned >= self.__max_hour_daily:
+                                    current_day_index += 1
+                                    hour_assigned = 0
                                     break
+                                else:
+                                    self.__schedule[current_day_index].add((r.name, r.hour))
+                                    hour_assigned += r.hour
+                else:
+                    current_day_index += 1
+                    hour_assigned = 0
 
-                if remaining_hours <= 0:
-                    break  # Exit loop if task hours are fully allocated
+                if remaining_hours <= 0 or current_day_index > task_deadline_index:
+                    break  # Exit loop if task hours are fully allocated or past deadline
             lastday_index = current_day_index
 
         if lastday_index - today_index < 7:
